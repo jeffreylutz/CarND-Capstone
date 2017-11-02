@@ -83,8 +83,11 @@ class WaypointUpdater(object):
 
         self.waypoint_idx = nearest_wp
 
+        # Waypoint size is either LOOKAHEAD_WPS or less depending on nearest_wp and size of map_wp
         a = nearest_wp
         b = min(nearest_wp + LOOKAHEAD_WPS, len(self.map_wp))
+        wp_size = min(nearest_wp + LOOKAHEAD_WPS, len(self.map_wp)) - nearest_wp;
+        rospy.logwarn('Waypoint size: ' + str(wp_size))
 
         # Pub data
         lane = Lane()
@@ -95,11 +98,11 @@ class WaypointUpdater(object):
         if self.stop_wp_active:
             n_stop_wp = len(self.velocity_map)
             rospy.loginfo('n_stop_wp = ' + 'n_stop_wp')
-            for i in range(b - a):
+            for i in range(wp_size):
                 v = self.velocity_map[i] if i < n_stop_wp else 0.0
                 self.set_waypoint_velocity(lane.waypoints, i, v)
 
-        rospy.logwarn('Publishing lane final waypoints.. ')
+        rospy.logwarn('Publishing lane final waypoints.. len(Lane.waypoints): ' + str(len(lane.waypoints)))
         self.final_waypoints_pub.publish(lane)
 
     def current_velocity_cb(self, msg):
