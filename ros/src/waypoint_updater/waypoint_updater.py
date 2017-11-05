@@ -27,7 +27,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 LOOKAHEAD_WPS = 100  # Number of waypoints we will publish. You can change this number
 TIMEOUT_VALUE = 0.1
 ONE_MPH = 0.44704
-
+STOP_DIST = 2.0      # min distance for stopping at red light, if less than this then go through
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -63,6 +63,9 @@ class WaypointUpdater(object):
 
         # Set max speed converting MPH to KPH/mps
         self.max_speed = rospy.get_param('~max_speed', 1) * ONE_MPH
+
+	# Initialize red light waypoint index (-1 = no red light detected)
+	self.redlight_wp = -1
 
         rospy.spin()
 
@@ -134,13 +137,33 @@ class WaypointUpdater(object):
             car_distance_to_stop_line = -1.
             planned_velocity = self.max_speed
 
+	    # If red light, stop at the red light waypoint
+	    if self.redlight_wp != -1:
+		
+		# Find the distance to red light waypoint
+		car_distance_to_stop_line = distance(self.base_waypoints, first_wpt_index, self.redlight_wp)
+
+		# Compare car distance to min distance to make sure enough time to stop
+		if car_distance_to_stop_line >= STOP_DIST:
+		    slow_down = True
+		    rospy.loginfo('Stopping at red light')
+
+	            # Use distance and current velocity to solve for average acceleration
+		    decel = self.velocity / (car_distance_to_stop_line - STOP_DIST)
+
+	
             # Fill the lane with the final waypoints
             for num_wp in range(LOOKAHEAD_WPS):
                 wp = Waypoint()
                 wp.pose = self.waypoints.waypoints[(first_wpt_index + num_wp) % num_waypoints_in_list].pose
                 wp.twist = self.waypoints.waypoints[(first_wpt_index + num_wp) % num_waypoints_in_list].twist
 
-                wp.twist.twist.linear.x = planned_velocity
+                # Find velocity target based on stopping or not
+		if slow_down:
+		    # Set all waypoints to same target velocity TODO may need calc each wp velocity
+		    wp.twist.twist.linear.x = max(0.0, self.velocity-decel)
+		else: 
+		    wp.twist.twist.linear.x = planned_velocity
                 wp.twist.twist.linear.y = 0.0
                 wp.twist.twist.linear.z = 0.0
 
@@ -159,13 +182,7 @@ class WaypointUpdater(object):
         self.waypoints = waypoints
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
-	if msg:
-          self.index_redlight_wp  = msg.data # TODO update for message type in tl_detector
-	 # rospy.loginfo('Red light waypoint at: %s ', self.index_redlight_wp)
-        #else:
-	#  self.index_redlight_wp = None
-	#  rospy.loginfo('No traffic waypoint message detected')
+        self.redlight_wp  = msg.data 
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
