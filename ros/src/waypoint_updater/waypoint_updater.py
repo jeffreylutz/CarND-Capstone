@@ -39,7 +39,7 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-        # rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         # TODO:  Do we need obstacle detection????
         # rospy.Subscriber('/obstacle_waypoint', , self.obstacle_cb)
@@ -160,7 +160,12 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+	if msg:
+          self.index_redlight_wp  = msg.data # TODO update for message type in tl_detector
+	 # rospy.loginfo('Red light waypoint at: %s ', self.index_redlight_wp)
+        #else:
+	#  self.index_redlight_wp = None
+	#  rospy.loginfo('No traffic waypoint message detected')
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
