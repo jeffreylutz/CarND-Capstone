@@ -141,7 +141,7 @@ class WaypointUpdater(object):
 	    if self.redlight_wp != -1:
 		
 		# Find the distance to red light waypoint
-		car_distance_to_stop_line = distance(self.base_waypoints, first_wpt_index, self.redlight_wp)
+		car_distance_to_stop_line = self.distance2(self.waypoints.waypoints, first_wpt_index, self.redlight_wp)
 
 		# Compare car distance to min distance to make sure enough time to stop
 		if car_distance_to_stop_line >= STOP_DIST:
@@ -198,7 +198,7 @@ class WaypointUpdater(object):
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
         waypoints[waypoint].twist.twist.linear.x = velocity
 
-    def distance(self, waypoints, wp1, wp2):
+    def distance2(self, waypoints, wp1, wp2):
         dist = 0
         dl = lambda a, b: math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2)
         for i in range(wp1, wp2 + 1):
