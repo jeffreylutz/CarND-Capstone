@@ -27,7 +27,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 LOOKAHEAD_WPS = 100  # Number of waypoints we will publish. You can change this number
 TIMEOUT_VALUE = 0.1
 ONE_MPH = 0.44704
-STOP_DIST = 2.0      # min distance for stopping at red light, if less than this then go through
+STOP_DIST = 2.0     # min distance for stopping at red light, if less than this then go through
 
 class WaypointUpdater(object):
     def __init__(self):
