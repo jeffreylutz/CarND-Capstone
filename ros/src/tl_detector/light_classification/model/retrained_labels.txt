@@ -1,3 +1,0 @@
-redlight
-notlight
-greenlight
