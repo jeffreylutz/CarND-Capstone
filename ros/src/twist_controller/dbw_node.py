@@ -87,6 +87,15 @@ class DBWNode(object):
         rospy.loginfo('DBWNode::__init__ - entering loop')
         self.loop()
 
+    def reset(self):
+        self.cte_counter = 0 
+	self.tot_cte = 0 
+        self.twist_cmd = None
+        self.current_velocity = None
+        self.time_last_cmd = None
+        self.pose = None
+        self.waypoints = None
+
     def twist_cb(self, msg):
         self.time_last_cmd = rospy.rostime.get_time()
         self.twist_cmd = msg
@@ -119,7 +128,7 @@ class DBWNode(object):
                 continue
 
             # no need to test time_last_cmd since it is assigned together with twist_cmd
-            if self.waypoints != None and self.twist_cmd != None and self.current_velocity != None:
+            if self.waypoints != None and self.twist_cmd != None and self.current_velocity != None and self.dbw_enable_status == True:
 
                 # Create lists of x and y values of the next waypoints to fit a polynomial
                 x = []
@@ -139,6 +148,8 @@ class DBWNode(object):
                         x.append(transformed_waypoint.pose.position.x)
                         y.append(transformed_waypoint.pose.position.y)
                     i += 1
+
+
                 coefficients = np.polyfit(x, y, 3)
                 # We have to calculate the cte for a position ahead, due to delay
                 cte = np.polyval(coefficients, 0.7 * self.current_velocity.twist.linear.x)
@@ -153,10 +164,11 @@ class DBWNode(object):
                                                                                 self.current_velocity,
                                                                                 self.dbw_enable_status,
                                                                                 self.brake_deadband, cte)
-                if self.dbw_enable_status == True:
-                    self.publish(throttle_val, brake_val, steering_val)
-                else:
-                    rospy.loginfo("dbw_enable_status %s", self.dbw_enable_status)
+                self.publish(throttle_val, brake_val, steering_val)
+                
+	    else:
+                rospy.loginfo("dbw_enable_status %s", self.dbw_enable_status)
+                self.reset()
 
             # if dbw is enabled:
             rate.sleep()
