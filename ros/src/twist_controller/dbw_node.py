@@ -149,10 +149,14 @@ class DBWNode(object):
                         y.append(transformed_waypoint.pose.position.y)
                     i += 1
 
-
-                coefficients = np.polyfit(x, y, 3)
-                # We have to calculate the cte for a position ahead, due to delay
-                cte = np.polyval(coefficients, 0.7 * self.current_velocity.twist.linear.x)
+		# Added protection for when x does not exist
+                if x:
+		    coefficients = np.polyfit(x, y, 3)
+                    # We have to calculate the cte for a position ahead, due to delay
+                    cte = np.polyval(coefficients, 0.7 * self.current_velocity.twist.linear.x)
+		else:
+		    # Maintain current cte (use 1 for mulitplier)
+		    cte = 1
                 cte *= abs(cte)
                 rospy.loginfo('cte: %s', cte)
                 self.tot_cte += abs(cte)
