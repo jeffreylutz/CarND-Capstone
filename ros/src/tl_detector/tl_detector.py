@@ -10,6 +10,7 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+import math
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -101,7 +102,54 @@ class TLDetector(object):
 
         """
         #TODO implement
-        return 0
+
+	# initialize min distance
+	min_dist = float("inf")
+
+	pose1 = pose.position # Car state
+
+	# loop through waypoints to check for closest
+	for wp in self.waypoints.waypoints:	
+	    pose2 = wp.pose.pose.position 
+	    dist = self.distance(pose1, pose2)
+	    if dist < min_dist:
+		min_dist = dist
+		closest_wp = wp
+	return closest_wp 
+
+    def distance(self, pose1, pose2):
+	""" Return the distance between two points
+	"""
+	xdiff = pose1.x - pose2.x
+	ydiff = pose1.y - pose2.y
+    	zdiff = pose1.z - pose2.z
+        dist = math.sqrt(xdiff**2 + ydiff**2 + zdiff**2)
+	return dist
+
+    def get_closest_light(self, pose):
+        """Identifies the closest light waypoint to the given position
+            https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
+        Args:
+            pose (Pose): position to match a waypoint to
+
+        Returns:
+            int: index of the closest waypoint in self.lights
+
+        """
+	# initialize min distance
+	min_dist = float("inf")
+
+	pose1 = pose.position # Car state
+
+	# loop through waypoints to check for closest
+	for wp in self.lights:	
+	    pose2 = wp.pose.pose.position 
+	    dist = self.distance(pose1, pose2)
+	    if dist < min_dist:
+		min_dist = dist
+		closest_wp = wp
+	return closest_wp 
+
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
@@ -133,17 +181,26 @@ class TLDetector(object):
         """
         light = None
 
+	# If self.waypoints is not defined, return the default no light message
+	if (self.waypoints == None):
+	    return -1, TrafficLight.UNKNOWN
+
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
-        if(self.pose):
-            car_position = self.get_closest_waypoint(self.pose.pose)
+        
+	# Find closest waypoint to car
+	if(self.pose):
+            wp_closest_to_car = self.get_closest_waypoint(self.pose.pose)
 
         #TODO find the closest visible traffic light (if one exists)
+	#light = self.get_closest_light(wp_closest_to_car.waypoint.pose.pose)
+	#light_wp = light
 
         if light:
-            state = self.get_light_state(light)
+	    state = light.state # for testing, CHANGE! 
+            #state = self.get_light_state(light)
             return light_wp, state
-        self.waypoints = None
+        
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
