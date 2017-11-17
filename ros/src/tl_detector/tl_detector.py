@@ -107,15 +107,18 @@ class TLDetector(object):
 	min_dist = float("inf")
 
 	pose1 = pose.position # Car state
+	ind = 0
 
 	# loop through waypoints to check for closest
 	for wp in self.waypoints.waypoints:	
+	    ind += 1
 	    pose2 = wp.pose.pose.position 
 	    dist = self.distance(pose1, pose2)
 	    if dist < min_dist:
 		min_dist = dist
 		closest_wp = wp
-	return closest_wp 
+		ind_closest = ind
+	return ind_closest, closest_wp 
 
     def distance(self, pose1, pose2):
 	""" Return the distance between two points
@@ -139,16 +142,19 @@ class TLDetector(object):
 	# initialize min distance
 	min_dist = float("inf")
 
-	pose1 = pose.position # Car state
+	pose1 = pose.position # closest waypoint
+	ind = 0
 
-	# loop through waypoints to check for closest
-	for wp in self.lights:	
+	# loop through light waypoints to check for closest
+	for wp in self.lights:
+	    ind += 1	
 	    pose2 = wp.pose.pose.position 
 	    dist = self.distance(pose1, pose2)
 	    if dist < min_dist:
 		min_dist = dist
 		closest_wp = wp
-	return closest_wp 
+		ind_closest = ind
+	return ind_closest 
 
 
     def get_light_state(self, light):
@@ -190,15 +196,19 @@ class TLDetector(object):
         
 	# Find closest waypoint to car
 	if(self.pose):
-            wp_closest_to_car = self.get_closest_waypoint(self.pose.pose)
+            ind_wp_closest_to_car, wp_closest_to_car = self.get_closest_waypoint(self.pose.pose)
 
-        #TODO find the closest visible traffic light (if one exists)
-	#light = self.get_closest_light(wp_closest_to_car.waypoint.pose.pose)
-	#light_wp = light
+        # Find the closest visible traffic light (if one exists). 
+	# TODO    Make sure it is in front of car.
+	    light_wp = self.get_closest_light(wp_closest_to_car.pose.pose)
+	
+	# TODO Find the closest stop line position to the light
 
+	# Check light state
         if light:
 	    state = light.state # for testing, CHANGE! 
             #state = self.get_light_state(light)
+	    rospy.logwarn("light waypoint %s, state %s", light_wp, state)
             return light_wp, state
         
         return -1, TrafficLight.UNKNOWN
