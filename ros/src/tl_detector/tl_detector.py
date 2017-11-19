@@ -195,14 +195,18 @@ class TLDetector(object):
         stop_line_positions = self.config['stop_line_positions']
         
 	# Find closest waypoint to car
-	if(self.pose):
-            ind_wp_closest_to_car, wp_closest_to_car = self.get_closest_waypoint(self.pose.pose)
+	#if(self.pose):
+            #ind_wp_closest_to_car, wp_closest_to_car = self.get_closest_waypoint(self.pose.pose)
 
         # Find the closest visible traffic light (if one exists). 
-	# TODO    Make sure it is in front of car.
-	    light_wp = self.get_closest_light(wp_closest_to_car.pose.pose)
+	    #light_wp = self.get_closest_light(wp_closest_to_car.pose.pose)
 	
-	# TODO(maybe) Find the closest stop line position to the light
+	# TODO 
+	# In init, go through stop_line_positions and find closest wp to each
+	# At each time step, check current post vs the stop line waypoint set (8 pts)
+	#   - transform to local frame
+	#   - find closest wp in front
+	#   - if wp within tolerance, return waypoint and light color
 
 	# Check light state
         if light:

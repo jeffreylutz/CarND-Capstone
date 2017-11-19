@@ -139,7 +139,7 @@ class WaypointUpdater(object):
             planned_velocity = self.max_speed
 
 	    # If red light, stop at the red light waypoint
-	    if self.redlight_wp != -1:
+	    if self.redlight_wp != -1: # TODO and light is red
 		
 		# Find the distance to red light waypoint
 		#car_distance_to_stop_line = self.distance2(self.waypoints.waypoints, first_wpt_index, self.redlight_wp)
@@ -158,7 +158,7 @@ class WaypointUpdater(object):
 		# if within stopping distance, set future waypoints velocity to zero 
 		elif car_distance_to_stop_line < STOP_DIST:
 		    stop = True
-		    rospy.loginfo("Stoppping at red light")
+		    rospy.loginfo("Stopping at red light")
 	
             # Fill the lane with the final waypoints
             for num_wp in range(LOOKAHEAD_WPS):
