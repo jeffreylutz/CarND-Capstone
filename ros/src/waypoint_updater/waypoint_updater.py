@@ -38,7 +38,7 @@ class WaypointUpdater(object):
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
-        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
+        # Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         # TODO:  Do we need obstacle detection????
@@ -46,7 +46,7 @@ class WaypointUpdater(object):
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
-        # TODO: Add other member variables you need below
+        # Add other member variables you need below
         self.tf_listener = tf.TransformListener()
 
         # The car's current position
@@ -150,7 +150,9 @@ class WaypointUpdater(object):
 
 	            # Use distance and current velocity to solve for average acceleration
 		    decel = self.velocity / (car_distance_to_stop_line - STOP_DIST)
-
+		
+		# TODO Add mode to wait at red light
+		# if within stopping distance, set future waypoints velocity to zero 
 	
             # Fill the lane with the final waypoints
             for num_wp in range(LOOKAHEAD_WPS):
