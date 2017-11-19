@@ -209,7 +209,8 @@ class TLDetector(object):
 	    state = light.state # for testing, CHANGE! 
             #state = self.get_light_state(light)
 	    rospy.logwarn("light waypoint %s, state %s", light_wp, state)
-            return light_wp, state
+            #return light_wp, state
+	    return wp_closest_to_car, state
         
         return -1, TrafficLight.UNKNOWN
 

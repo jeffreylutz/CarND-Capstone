@@ -142,8 +142,10 @@ class WaypointUpdater(object):
 	    if self.redlight_wp != -1:
 		
 		# Find the distance to red light waypoint
-		car_distance_to_stop_line = self.distance2(self.waypoints.waypoints, first_wpt_index, self.redlight_wp)
+		#car_distance_to_stop_line = self.distance2(self.waypoints.waypoints, first_wpt_index, self.redlight_wp)
 
+		car_distance_to_stop_line = self.distance(self.pose.pose.position, self.redlight_wp.pose.pose.position)
+            
 		# Compare car distance to min distance to make sure enough time to stop
 		if car_distance_to_stop_line >= STOP_DIST:
 		    slow_down = True
