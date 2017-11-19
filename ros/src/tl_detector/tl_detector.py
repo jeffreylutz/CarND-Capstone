@@ -22,6 +22,7 @@ class TLDetector(object):
         self.waypoints = None
         self.camera_image = None
         self.lights = []
+	light_wp = []
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -198,7 +199,6 @@ class TLDetector(object):
         # Find closest waypoint to car
         if(self.pose):
             ind_wp_closest_to_car, wp_closest_to_car = self.get_closest_waypoint(self.pose.pose)
-
 
             # Find the closest visible traffic light (if one exists). 
             # TODO    Make sure it is in front of car.

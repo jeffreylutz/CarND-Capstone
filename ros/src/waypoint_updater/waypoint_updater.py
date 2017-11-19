@@ -31,7 +31,7 @@ ONE_MPH = 0.44704
 STOP_DIST = 2.0     #Stop at the light at this distance, if less than this then go through
 SLOW_DIST = 40.0     #Start slowing for the light at this distance
 STOP_TOL  = 1.0      #Tolarance around STOP_DIST to allow full stop
-
+NUM_OF_STOP_WP = 2   # Additional number of waypoints with velocity set to zero when in STOP mode
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -175,11 +175,12 @@ class WaypointUpdater(object):
 
                 # Find velocity target based on stopping or not
                 if slow_down:
-                    # Set all waypoints to same target velocity TODO may need calc each wp velocity
+                    # Set all waypoints to same target velocity
                     wp.twist.twist.linear.x = max(0.0, self.velocity-decel)
                 elif stop:
-                    # set velocity to zero
-                    wp.twist.twist.linear.x = 0         
+                    # set velocity to zero for next NUM_OF_STOP_WP waypoints
+		    for ind in range(first_wpt_index, first_wpt_index+NUM_OF_STOP_WP):
+                        wp[ind].twist.twist.linear.x = 0         
                 else: 
                     wp.twist.twist.linear.x = planned_velocity
 
