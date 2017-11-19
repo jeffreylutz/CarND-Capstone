@@ -19,7 +19,9 @@ import time
 
 dirname, filename = os.path.split(os.path.abspath(sys.argv[0]))
 
-MODEL_NAME = 'traffic_light_graph_17111201'         #Retrained ssd_mobilenet_v1_coco
+#MODEL_NAME = 'traffic_light_graph_17111201'         #Retrained ssd_mobilenet_v1_coco
+#MODEL_NAME = 'traffic_light_graph_17111601'         #Retrained ssd_mobilenet_v1_coco
+MODEL_NAME = 'traffic_light_graph_frcnnv2_17111701'         #Retrained faster_rcnn_inception_v2_coco
 
 PATH_TO_CKPT = os.path.join(dirname, "light_classification/model/" + MODEL_NAME + "/frozen_inference_graph.pb")
 PATH_TO_LABELS = os.path.join(dirname, "light_classification/model/" + MODEL_NAME + "/object-detection.pbtxt")
@@ -29,6 +31,8 @@ NUM_CLASSES = 3
 class TLClassifier(object):
 
     def __init__(self):
+
+        self.imgnum = 0     
 
         #Default Prediction @ startup
         self.light_prediction = TrafficLight.UNKNOWN
@@ -80,9 +84,15 @@ class TLClassifier(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         References:
-        https://stackoverflow.com/questions/40273109/convert-python-opencv-mat-image-to-tensorflow-image-data
+        https://github.com/tensorflow/models/tree/master/research/object_detection
+        https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md
+
 
         """
+
+        self.imgnum += 1
+
+        detection_threshold = 0.50
 
         #1= width, 0=height
         if (image.shape[1] > image.shape[0]):
@@ -91,9 +101,11 @@ class TLClassifier(object):
             image = image[0:image.shape[0], d2:(image.shape[1]-d2)]
 
         image = cv2.resize(image,dsize=(450,450), interpolation = cv2.INTER_CUBIC)
+        #cv2.imwrite(('sim_' + str(self.imgnum) + '.jpg'), image)
 
         # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
-        image_np_expanded = np.expand_dims(image, axis=0)
+        rgb_image = image[...,::-1]
+        image_np_expanded = np.expand_dims(rgb_image, axis=0)
       
         # Actual detection.
         (boxes, scores, classes, num) = self.sess.run(
@@ -106,23 +118,36 @@ class TLClassifier(object):
 
         rospy.logwarn("Light Classifier Check")
 
-        detection_threshold = 0.40
-
         self.light_prediction = TrafficLight.UNKNOWN
 
         for i in range(boxes.shape[0]):
             if scores[i] > detection_threshold:
                 object_name = self.category_index[classes[i]]['name']
 
-                rospy.logwarn("Light Classifier Object:%s  Name=%s    Score=%s ", i, object_name, scores[i])
-  
-                if (object_name ==  'greenlight'):
-                    self.light_prediction = TrafficLight.GREEN
-                if (object_name == 'redlight'):
-                    self.light_prediction = TrafficLight.RED
-                if (object_name ==  'yellowlight'):
-                    self.light_prediction = TrafficLight.YELLOW               
+                #image size is 450
+                ymin = int(boxes[i][0] * 450)
+                xmin = int(boxes[i][1] * 450)
+                ymax = int(boxes[i][2] * 450)
+                xmax = int(boxes[i][3] * 450)
+                area = ((boxes[i][2] - boxes[i][0]) * (boxes[i][3] - boxes[i][1]))
 
+                image_light = image[ymin:ymax, xmin:xmax]
+                #cv2.imwrite(('TL_' + str(self.imgnum) + '.jpg'), image_light)
+
+                aspect_ratio = ((boxes[i][3]-boxes[i][1]) / (boxes[i][2]-boxes[i][0]))
+                if ((aspect_ratio > .30) and (aspect_ratio < .58) and (area < 0.05)):
+
+                    if (object_name ==  'greenlight'):
+                        self.light_prediction = TrafficLight.GREEN
+                    if (object_name == 'redlight'):
+                        self.light_prediction = TrafficLight.RED
+                    if (object_name ==  'yellowlight'):
+                        self.light_prediction = TrafficLight.YELLOW  
+
+                rospy.logwarn("Light Classifier Object:%s  Name=%s   Score=%s ", i, object_name, scores[i])
+  
+
+        self.image_tl_boxes = image
         if (self.light_prediction != TrafficLight.UNKNOWN):
             # Visualization of the results of a detection.
             vis_util.visualize_boxes_and_labels_on_image_array(
@@ -134,10 +159,10 @@ class TLClassifier(object):
               use_normalized_coordinates=True,
               line_thickness=8)
 
-            time.sleep(0.1)
             self.image_tl_boxes = image
-            cv2.imwrite('temp.png', self.image_tl_boxes)
+            
 
-
+        #cv2.imwrite(('class_' + str(self.imgnum) + '.jpg'), self.image_tl_boxes)
 
         return self.light_prediction
+
