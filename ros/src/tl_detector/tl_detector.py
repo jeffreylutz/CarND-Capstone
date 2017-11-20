@@ -199,11 +199,12 @@ class TLDetector(object):
         if(self.pose):
             ind_wp_closest_to_car, wp_closest_to_car = self.get_closest_waypoint(self.pose.pose)
 
-            # Find the closest visible traffic light (if one exists). 
-            # TODO    Make sure it is in front of car.
-            light_wp = self.get_closest_light(wp_closest_to_car.pose.pose)
 
-        # TODO Find the closest stop line position to the light
+        # Find the closest visible traffic light (if one exists). 
+        # TODO    Make sure it is in front of car.
+	    light_wp = self.get_closest_light(wp_closest_to_car.pose.pose)
+	
+    	# TODO(maybe) Find the closest stop line position to the light
 
         # Check light state
         if light:
