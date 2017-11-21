@@ -5,7 +5,7 @@ from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from styx_msgs.msg import Lane, Waypoint
 import tf
-
+import yaml
 import math
 import time
 
@@ -27,7 +27,11 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 LOOKAHEAD_WPS = 100  # Number of waypoints we will publish. You can change this number
 TIMEOUT_VALUE = 0.1
 ONE_MPH = 0.44704
-STOP_DIST = 2.0     # min distance for stopping at red light, if less than this then go through
+
+STOP_DIST = 2.0     #Stop at the light at this distance, if less than this then go through
+SLOW_DIST = 40.0     #Start slowing for the light at this distance
+STOP_TOL  = 1.0      #Tolarance around STOP_DIST to allow full stop
+
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -40,6 +44,9 @@ class WaypointUpdater(object):
 
         # Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+
+        config_string = rospy.get_param("/traffic_light_config")
+        self.config = yaml.load(config_string)
 
         # TODO:  Do we need obstacle detection????
         # rospy.Subscriber('/obstacle_waypoint', , self.obstacle_cb)
@@ -64,8 +71,8 @@ class WaypointUpdater(object):
         # Set max speed converting MPH to KPH/mps
         self.max_speed = rospy.get_param('~max_speed', 1) * ONE_MPH
 
-	# Initialize red light waypoint index (-1 = no red light detected)
-	self.redlight_wp = -1
+        # Initialize red light waypoint index (-1 = no red light detected)
+        self.redlight_wp = -1
 
         rospy.spin()
 
@@ -133,31 +140,33 @@ class WaypointUpdater(object):
 
             # Prepare for calculating speed:
             slow_down = False
-	    stop = False
+            stop = False
             reached_zero_velocity = False
             car_distance_to_stop_line = -1.
             planned_velocity = self.max_speed
 
-	    # If red light, stop at the red light waypoint
-	    if self.redlight_wp != -1:
-		
-		# Find the distance to red light waypoint
-		car_distance_to_stop_line = self.distance2(self.waypoints.waypoints, first_wpt_index, self.redlight_wp)
+            # If red light, stop at the red light waypoint
+            if self.redlight_wp != -1:
+            
+                # Find the distance to red light waypoint
+                car_distance_to_stop_line = self.distance_tl(self.waypoints.waypoints, first_wpt_index, self.redlight_wp)
+                #rospy.logwarn("                                                               Car distance to stop light:%s" , car_distance_to_stop_line)
 
-		# Compare car distance to min distance to make sure enough time to stop
-		if car_distance_to_stop_line >= STOP_DIST:
-		    slow_down = True
-		    rospy.loginfo('Slowing for red light')
+                # Compare car distance to min distance to make sure enough time to stop
+                if (car_distance_to_stop_line > (STOP_DIST + STOP_TOL)) and (car_distance_to_stop_line <= SLOW_DIST) :
+                    slow_down = True
+                    rospy.loginfo('Slowing for red light')
 
-	            # Use distance and current velocity to solve for average acceleration
-		    decel = self.velocity / (car_distance_to_stop_line - STOP_DIST)
-		
-		# TODO Add mode to wait at red light
-		# if within stopping distance, set future waypoints velocity to zero 
-		elif car_distance_to_stop_line < STOP_DIST:
-		    stop = True
-		    rospy.loginfo("Stoppping at red light")
-	
+                    # Use distance and current velocity to solve for average acceleration
+                    decel = (self.velocity / (car_distance_to_stop_line - STOP_DIST))-0.15
+                    rospy.logwarn("                                DECEL %s", decel)
+                
+                # TODO Add mode to wait at red light
+                # if within stopping distance, set future waypoints velocity to zero 
+                elif (car_distance_to_stop_line <= (STOP_DIST + STOP_TOL)) and (car_distance_to_stop_line >= (STOP_DIST - STOP_TOL)):
+                    stop = True
+                    rospy.loginfo("Stoppping at red light")
+            
             # Fill the lane with the final waypoints
             for num_wp in range(LOOKAHEAD_WPS):
                 wp = Waypoint()
@@ -165,14 +174,14 @@ class WaypointUpdater(object):
                 wp.twist = self.waypoints.waypoints[(first_wpt_index + num_wp) % num_waypoints_in_list].twist
 
                 # Find velocity target based on stopping or not
-		if slow_down:
-		    # Set all waypoints to same target velocity TODO may need calc each wp velocity
-		    wp.twist.twist.linear.x = max(0.0, self.velocity-decel)
-		elif stop:
-		    # set velocity to zero
-		    wp.twist.twist.linear.x = 0 		
-		else: 
-		    wp.twist.twist.linear.x = planned_velocity
+                if slow_down:
+                    # Set all waypoints to same target velocity TODO may need calc each wp velocity
+                    wp.twist.twist.linear.x = max(0.0, self.velocity-decel)
+                elif stop:
+                    # set velocity to zero
+                    wp.twist.twist.linear.x = 0         
+                else: 
+                    wp.twist.twist.linear.x = planned_velocity
 
                 wp.twist.twist.linear.y = 0.0
                 wp.twist.twist.linear.z = 0.0
@@ -215,6 +224,16 @@ class WaypointUpdater(object):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
         return dist
+
+    def distance_tl(self, waypoints, car_wp, light_wp):
+        # List of positions that correspond to the line to stop in front of for a given intersection
+        stop_line_positions = self.config['stop_line_positions']
+        light_wp = light_wp-1
+        dist = 0
+        dl = lambda a, bx, by: math.sqrt((a.x - bx) ** 2 + (a.y - by) ** 2)
+        dist += dl(waypoints[car_wp].pose.pose.position, stop_line_positions[light_wp][0], stop_line_positions[light_wp][1] )
+        rospy.logwarn("                                                               DIST:%s" , dist)
+        return dist    
 
     def distance(self, pose1, pose2):
         return math.sqrt((pose1.x - pose2.x) ** 2 + (pose1.y - pose2.y) ** 2 + (pose1.z - pose2.z) ** 2)

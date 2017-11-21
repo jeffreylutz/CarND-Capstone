@@ -20,8 +20,8 @@ import time
 dirname, filename = os.path.split(os.path.abspath(sys.argv[0]))
 
 #MODEL_NAME = 'traffic_light_graph_17111201'         #Retrained ssd_mobilenet_v1_coco
-#MODEL_NAME = 'traffic_light_graph_17111601'         #Retrained ssd_mobilenet_v1_coco
-MODEL_NAME = 'traffic_light_graph_frcnnv2_17111701'         #Retrained faster_rcnn_inception_v2_coco
+MODEL_NAME = 'traffic_light_graph_17111601'         #Retrained ssd_mobilenet_v1_coco
+##MODEL_NAME = 'traffic_light_graph_frcnnv2_17111701'         #Retrained faster_rcnn_inception_v2_coco
 
 PATH_TO_CKPT = os.path.join(dirname, "light_classification/model/" + MODEL_NAME + "/frozen_inference_graph.pb")
 PATH_TO_LABELS = os.path.join(dirname, "light_classification/model/" + MODEL_NAME + "/object-detection.pbtxt")
@@ -92,7 +92,7 @@ class TLClassifier(object):
 
         self.imgnum += 1
 
-        detection_threshold = 0.50
+        detection_threshold = 0.450
 
         #1= width, 0=height
         if (image.shape[1] > image.shape[0]):
@@ -103,8 +103,9 @@ class TLClassifier(object):
         image = cv2.resize(image,dsize=(450,450), interpolation = cv2.INTER_CUBIC)
         #cv2.imwrite(('sim_' + str(self.imgnum) + '.jpg'), image)
 
-        # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+        #Convert colorspace from BGR to RGB 
         rgb_image = image[...,::-1]
+        # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
         image_np_expanded = np.expand_dims(rgb_image, axis=0)
       
         # Actual detection.
@@ -116,7 +117,7 @@ class TLClassifier(object):
         classes = np.squeeze(classes).astype(np.int32)
         scores = np.squeeze(scores)
 
-        rospy.logwarn("Light Classifier Check")
+        #rospy.logwarn("Light Classifier Check")
 
         self.light_prediction = TrafficLight.UNKNOWN
 
@@ -131,16 +132,18 @@ class TLClassifier(object):
                 xmax = int(boxes[i][3] * 450)
                 area = ((boxes[i][2] - boxes[i][0]) * (boxes[i][3] - boxes[i][1]))
 
-                image_light = image[ymin:ymax, xmin:xmax]
+                ##Extract and save boxed area as jpg
+                #image_light = image[ymin:ymax, xmin:xmax]
                 #cv2.imwrite(('TL_' + str(self.imgnum) + '.jpg'), image_light)
 
                 aspect_ratio = ((boxes[i][3]-boxes[i][1]) / (boxes[i][2]-boxes[i][0]))
                 if ((aspect_ratio > .30) and (aspect_ratio < .58) and (area < 0.05)):
 
-                    if (object_name ==  'greenlight'):
-                        self.light_prediction = TrafficLight.GREEN
                     if (object_name == 'redlight'):
                         self.light_prediction = TrafficLight.RED
+                        break
+                    if (object_name ==  'greenlight'):
+                        self.light_prediction = TrafficLight.GREEN
                     if (object_name ==  'yellowlight'):
                         self.light_prediction = TrafficLight.YELLOW  
 
