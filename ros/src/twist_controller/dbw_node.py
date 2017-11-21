@@ -115,15 +115,15 @@ class DBWNode(object):
                 self.time_last_cmd = current_time
                 continue
 
+            # Due to race conditions, we need to store the waypoints temporary
+            temp_waypoints = copy.deepcopy(self.waypoints)
             # no need to test time_last_cmd since it is assigned together with twist_cmd
-            if self.waypoints != None and self.twist_cmd != None and self.current_velocity != None:
+            if temp_waypoints != None and self.twist_cmd != None and self.current_velocity != None:
                 
                 # Create lists of x and y values of the next waypoints to fit a polynomial
                 x = []
                 y = []
                 i = 0
-                # Due to race conditions, we need to store the waypoints temporary
-                temp_waypoints = copy.deepcopy(self.waypoints)
                 while len(x) < 20 and i < len(temp_waypoints.waypoints):
                     # Transform waypoint to car coordinates
                     temp_waypoints.waypoints[i].pose.header.frame_id = temp_waypoints.header.frame_id

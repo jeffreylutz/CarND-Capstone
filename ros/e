@@ -1,0 +1,6 @@
+!#/bin/bash
+
+clear
+#catkin_make clean
+source devel/setup.sh && rostopic echo /final_waypoints
+

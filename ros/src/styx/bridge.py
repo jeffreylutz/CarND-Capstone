@@ -128,28 +128,23 @@ class Bridge(object):
             name,
             "world")
 
-    def time_to_update(self):
-        if self.prev_timestamp > 0.0 and time.time() - self.prev_timestamp < 0.05:
-            return False
-        return True
-
-    def data_has_not_updated(self, data):
+    def data_has_changed(self,data):
         if self.old_data == None:
           self.old_data = data
-          return False
+          return True
     
         if data['x'] != self.old_data['x'] or data['y'] != self.old_data['y'] or data['z'] != self.old_data['z'] or data['yaw'] != self.old_data['yaw']:
           self.old_data = data
-          return False
-        return True
+          return True
+        return False
           
     def publish_odometry(self, data):
     
         #avoid unnecessary messages
-        if self.data_has_not_updated(data) and not self.time_to_update():
+        if not self.data_has_changed(data) and self.prev_timestamp > 0.0 and time.time() - self.prev_timestamp < 0.05:
             return
-        #Update on a fixed rate
-        if not self.time_to_update():
+        #ensure fixed update rate
+        if self.prev_timestamp > 0.0 and time.time() - self.prev_timestamp < 0.05:
             return
         self.prev_timestamp = time.time()          
         pose = self.create_pose(data['x'], data['y'], data['z'], data['yaw'])
