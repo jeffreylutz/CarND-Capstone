@@ -2,5 +2,6 @@
 
 clear
 #catkin_make clean
+rm -rf ~/.ros/log/*
 catkin_make && source devel/setup.sh && roslaunch launch/styx.launch
 

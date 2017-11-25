@@ -1,4 +1,4 @@
-# import rospy
+import rospy
 import math
 from yaw_controller import YawController
 from pid import PID
@@ -9,7 +9,7 @@ import math
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
 WEIGHT_PERSON = 75
-MIN_SPEED = 1.0 * ONE_MPH
+MIN_SPEED = 0.5 * ONE_MPH
 
 VELOCITY_Kp = 2.0
 VELOCITY_Ki = 0.0
@@ -64,7 +64,7 @@ class Controller(object):
 
         velocity_error = twist_cmd.twist.linear.x - current_velocity.twist.linear.x
 
-        if abs(twist_cmd.twist.linear.x) < 1.0 * ONE_MPH:
+        if abs(twist_cmd.twist.linear.x) < MIN_SPEED:
             self.velocity_pid_.reset()
 
         accel_cmd = self.velocity_pid_.step(velocity_error, control_period)
@@ -75,6 +75,8 @@ class Controller(object):
             twist_cmd.twist.angular.z = twist_cmd.twist.angular.z * MIN_SPEED / twist_cmd.twist.linear.x
             twist_cmd.twist.linear.x = MIN_SPEED
 
+        rospy.logwarn_throttle(1, 'accel_cmd: ' + str(accel_cmd))
+
         if dbw_enabled:
             if accel_cmd >= 0:
                 throttle_val = self.accel_pid_.step(accel_cmd - self.accel_lpf_.get(), control_period)
@@ -84,6 +86,7 @@ class Controller(object):
 
             if accel_cmd < -brake_deadband or twist_cmd.twist.linear.x < MIN_SPEED:
                 brake_val = -accel_cmd * vehicle_mass * self.wheel_radius
+                rospy.logwarn('Braking: ' + str(brake_val))
             else:
                 brake_val = 0
 

@@ -28,9 +28,9 @@ LOOKAHEAD_WPS = 100  # Number of waypoints we will publish. You can change this 
 TIMEOUT_VALUE = 0.1
 ONE_MPH = 0.44704
 
-STOP_DIST = 2.0     #Stop at the light at this distance, if less than this then go through
-SLOW_DIST = 40.0     #Start slowing for the light at this distance
-STOP_TOL  = 1.0      #Tolarance around STOP_DIST to allow full stop
+STOP_DIST = 2.0  # Stop at the light at this distance, if less than this then go through
+SLOW_DIST = 40.0  # Start slowing for the light at this distance
+STOP_TOL = 2.0  # Tolarance around STOP_DIST to allow full stop
 
 
 class WaypointUpdater(object):
@@ -99,7 +99,7 @@ class WaypointUpdater(object):
         for index, waypoint in enumerate(
                         self.waypoints.waypoints[self.prev_first_wpt_index:] + self.waypoints.waypoints[
                                                                                :self.prev_first_wpt_index],
-                        start=self.prev_first_wpt_index):
+                start=self.prev_first_wpt_index):
             current_wpt_distance = self.distance(self.pose.pose.position, waypoint.pose.pose.position)
             if distance_decreased and current_wpt_distance > min_wpt_distance:
                 break
@@ -111,10 +111,12 @@ class WaypointUpdater(object):
 
         transformed_light_point = None
 
-        rospy.loginfo_throttle(1,'Current waypoint: ' + str(self.prev_first_wpt_index) + ' of ' + str(len(self.waypoints.waypoints)) + ' ' + str(self.pose.pose.position.x) )
+        rospy.loginfo_throttle(1, 'Current waypoint: ' + str(self.prev_first_wpt_index) + ' of ' + str(
+            len(self.waypoints.waypoints)) + ' ' + str(self.pose.pose.position.x))
 
         if first_wpt_index == -1:
-            rospy.logwarn('WaypointUpdater::waypoints_cb - No waypoints ahead of ego were found... seems that the car went off course')
+            rospy.logwarn(
+                'WaypointUpdater::waypoints_cb - No waypoints ahead of ego were found... seems that the car went off course')
         else:
             # transform fast avoiding wait cycles
             # Transform first waypoint to car coordinates
@@ -146,28 +148,31 @@ class WaypointUpdater(object):
             car_distance_to_stop_line = -1.
             planned_velocity = self.max_speed
 
+            # self.print_wp(self.waypoints.waypoints, first_wpt_index)
+
             # If red light, stop at the red light waypoint
             if self.redlight_wp != -1:
-            
+
                 # Find the distance to red light waypoint
-                car_distance_to_stop_line = self.distance_tl(self.waypoints.waypoints, first_wpt_index, self.redlight_wp)
-                #rospy.logwarn("                                                               Car distance to stop light:%s" , car_distance_to_stop_line)
+                car_distance_to_stop_line = self.distance_tl(self.waypoints.waypoints, first_wpt_index,
+                                                             self.redlight_wp)
 
                 # Compare car distance to min distance to make sure enough time to stop
-                if (car_distance_to_stop_line > (STOP_DIST + STOP_TOL)) and (car_distance_to_stop_line <= SLOW_DIST) :
+                if (car_distance_to_stop_line > (STOP_DIST + STOP_TOL)) and (car_distance_to_stop_line <= SLOW_DIST):
                     slow_down = True
                     rospy.loginfo('Slowing for red light')
 
                     # Use distance and current velocity to solve for average acceleration
-                    decel = (self.velocity / (car_distance_to_stop_line - STOP_DIST))-0.15
-                    rospy.logwarn("                                DECEL %s", decel)
-                
+                    decel = ((self.velocity / (car_distance_to_stop_line - STOP_DIST)) * 0.6)
+
+
                 # TODO Add mode to wait at red light
                 # if within stopping distance, set future waypoints velocity to zero 
-                elif (car_distance_to_stop_line <= (STOP_DIST + STOP_TOL)) and (car_distance_to_stop_line >= (STOP_DIST - STOP_TOL)):
+                elif (car_distance_to_stop_line <= (STOP_DIST + STOP_TOL)) and (
+                            car_distance_to_stop_line >= (STOP_DIST - STOP_TOL)):
                     stop = True
-                    rospy.loginfo("Stoppping at red light")
-            
+                    rospy.loginfo("Stopping at red light")
+
             # Fill the lane with the final waypoints
             for num_wp in range(LOOKAHEAD_WPS):
                 wp = Waypoint()
@@ -177,11 +182,11 @@ class WaypointUpdater(object):
                 # Find velocity target based on stopping or not
                 if slow_down:
                     # Set all waypoints to same target velocity TODO may need calc each wp velocity
-                    wp.twist.twist.linear.x = max(0.0, self.velocity-decel)
+                    wp.twist.twist.linear.x = max(0.0, self.velocity - decel)
                 elif stop:
                     # set velocity to zero
-                    wp.twist.twist.linear.x = 0         
-                else: 
+                    wp.twist.twist.linear.x = 0.0
+                else:
                     wp.twist.twist.linear.x = planned_velocity
 
                 wp.twist.twist.linear.y = 0.0
@@ -199,11 +204,12 @@ class WaypointUpdater(object):
         self.velocity = msg.twist.linear.x
 
     def waypoints_cb(self, waypoints):
-        rospy.logwarn('waypoints: first/last wp: '+str(waypoints.waypoints[0].pose.pose.position) + '\n' + str(waypoints.waypoints[-1].pose.pose.position)  )
+        rospy.logwarn('waypoints: first/last wp: ' + str(waypoints.waypoints[0].pose.pose.position) + '\n' + str(
+            waypoints.waypoints[-1].pose.pose.position))
         self.waypoints = waypoints
 
     def traffic_cb(self, msg):
-        self.redlight_wp  = msg.data 
+        self.redlight_wp = msg.data
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -230,12 +236,17 @@ class WaypointUpdater(object):
     def distance_tl(self, waypoints, car_wp, light_wp):
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
-        light_wp = light_wp-1
+        light_wp = light_wp - 1
         dist = 0
         dl = lambda a, bx, by: math.sqrt((a.x - bx) ** 2 + (a.y - by) ** 2)
-        dist += dl(waypoints[car_wp].pose.pose.position, stop_line_positions[light_wp][0], stop_line_positions[light_wp][1] )
-        rospy.logwarn("                                                               DIST:%s" , dist)
-        return dist    
+        dist += dl(waypoints[car_wp].pose.pose.position, stop_line_positions[light_wp][0],
+                   stop_line_positions[light_wp][1])
+        rospy.logwarn("                                                               DIST:%s", dist)
+        return dist
+
+    def print_wp(self, waypoints, wp):
+        rospy.logwarn("                                                                  %s     Waypoint x:%s,  y:%s",
+                      wp, waypoints[wp].pose.pose.position.x, waypoints[wp].pose.pose.position.y)
 
     def distance(self, pose1, pose2):
         return math.sqrt((pose1.x - pose2.x) ** 2 + (pose1.y - pose2.y) ** 2 + (pose1.z - pose2.z) ** 2)
