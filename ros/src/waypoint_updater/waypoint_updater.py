@@ -221,13 +221,6 @@ class WaypointUpdater(object):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
 
-    def get_waypoint_velocity(self, waypoint):
-        return waypoint.twist.twist.linear.x
-
-    def set_waypoint_velocity2(self, waypoint, velocity):
-        waypoint.twist.twist.linear.x = velocity
-        # rospy.logwarn('Waypoint velocity set to: %f', velocity)
-
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
         waypoints[waypoint].twist.twist.linear.x = velocity
 
