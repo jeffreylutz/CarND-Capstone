@@ -129,6 +129,11 @@ class DBWNode(object):
 
             # Due to race conditions, we need to store the waypoints temporary
             temp_waypoints = copy.deepcopy(self.waypoints)
+            if temp_waypoints == None:
+                wp_len = 0
+            else:
+                wp_len = len(temp_waypoints.waypoints)
+            rospy.loginfo('waypoints size: ' + str(wp_len))
             # no need to test time_last_cmd since it is assigned together with twist_cmd
             if temp_waypoints != None and self.twist_cmd != None and self.current_velocity != None:
 
