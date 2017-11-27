@@ -9,6 +9,7 @@ import yaml
 import math
 import time
 
+
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
 
@@ -37,6 +38,9 @@ class WaypointUpdater(object):
     def __init__(self):
         rospy.loginfo('WaypointUpdater::__init__ - Start')
 
+        speed_limit_velocity = rospy.get_param('/waypoint_loader/velocity')
+        rospy.logwarn('### Speed limit: ' + str(speed_limit_velocity) )
+
         rospy.init_node('waypoint_updater')
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
@@ -63,13 +67,14 @@ class WaypointUpdater(object):
         self.waypoints = None
 
         # The car's current velocity
-        self.velocity = 0.0
+        self.current_velocity = 0.0
 
         # first waypoint index at the previous iteration
         self.prev_first_wpt_index = 0
 
         # Set max speed converting MPH to KPH/mps
-        self.max_speed = rospy.get_param('~max_speed', 1) * ONE_MPH
+        self.max_velocity = rospy.get_param('/waypoint_loader/velocity', 1) * ONE_MPH
+        rospy.logwarn('### Speed limit: ' + str(self.max_velocity) )
 
         # Initialize red light waypoint index (-1 = no red light detected)
         self.redlight_wp = -1
@@ -111,8 +116,7 @@ class WaypointUpdater(object):
 
         transformed_light_point = None
 
-        rospy.loginfo_throttle(1, 'Current waypoint: ' + str(self.prev_first_wpt_index) + ' of ' + str(
-            len(self.waypoints.waypoints)) + ' ' + str(self.pose.pose.position.x))
+        # rospy.loginfo_throttle(1, 'Current waypoint: ' + str(self.prev_first_wpt_index) + ' of ' + str(len(self.waypoints.waypoints)) + ' ' + str(self.pose.pose.position.x))
 
         if first_wpt_index == -1:
             rospy.logwarn(
@@ -146,7 +150,6 @@ class WaypointUpdater(object):
             stop = False
             reached_zero_velocity = False
             car_distance_to_stop_line = -1.
-            planned_velocity = self.max_speed
 
             # self.print_wp(self.waypoints.waypoints, first_wpt_index)
 
@@ -163,7 +166,7 @@ class WaypointUpdater(object):
                     rospy.loginfo('Slowing for red light')
 
                     # Use distance and current velocity to solve for average acceleration
-                    decel = ((self.velocity / (car_distance_to_stop_line - STOP_DIST)) * 0.6)
+                    decel = ((self.current_velocity / (car_distance_to_stop_line - STOP_DIST)) * 0.6)
 
 
                 # TODO Add mode to wait at red light
@@ -178,16 +181,19 @@ class WaypointUpdater(object):
                 wp = Waypoint()
                 wp.pose = self.waypoints.waypoints[(first_wpt_index + num_wp) % num_waypoints_in_list].pose
                 wp.twist = self.waypoints.waypoints[(first_wpt_index + num_wp) % num_waypoints_in_list].twist
+                wp_max_velocity = wp.twist.twist.linear.x
+                # rospy.loginfo_throttle(10,'Waypoint max speed: ' + str(wp_max_velocity) + ' - ' + str(self.max_velocity) )
 
                 # Find velocity target based on stopping or not
                 if slow_down:
                     # Set all waypoints to same target velocity TODO may need calc each wp velocity
-                    wp.twist.twist.linear.x = max(0.0, self.velocity - decel)
+                    wp.twist.twist.linear.x = max(0.0, self.current_velocity - decel)
                 elif stop:
                     # set velocity to zero
                     wp.twist.twist.linear.x = 0.0
                 else:
-                    wp.twist.twist.linear.x = planned_velocity
+                    # wp.twist.twist.linear.x = wp_max_velocity
+                    wp.twist.twist.linear.x = self.max_velocity
 
                 wp.twist.twist.linear.y = 0.0
                 wp.twist.twist.linear.z = 0.0
@@ -201,7 +207,7 @@ class WaypointUpdater(object):
         self.final_waypoints_pub.publish(lane)
 
     def current_velocity_cb(self, msg):
-        self.velocity = msg.twist.linear.x
+        self.current_velocity = msg.twist.linear.x
 
     def waypoints_cb(self, waypoints):
         rospy.logwarn('waypoints: first/last wp: ' + str(waypoints.waypoints[0].pose.pose.position) + '\n' + str(
