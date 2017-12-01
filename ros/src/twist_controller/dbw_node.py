@@ -139,14 +139,15 @@ class DBWNode(object):
                         x.append(transformed_waypoint.pose.position.x)
                         y.append(transformed_waypoint.pose.position.y)
                     i += 1
-                coefficients = np.polyfit(x, y, 3)
+                #coefficients = np.polyfit(x, y, 3)
                 # We have to calculate the cte for a position ahead, due to delay
-                cte = np.polyval(coefficients, 0.7 * self.current_velocity.twist.linear.x)
-                cte *= abs(cte)
-                rospy.loginfo('cte: %s', cte)
-                self.tot_cte += abs(cte)
-                self.cte_counter += 1
-                rospy.loginfo('avg_cte: %s', self.tot_cte / self.cte_counter)
+                #cte = np.polyval(coefficients, 0.7 * self.current_velocity.twist.linear.x)
+                #cte *= abs(cte)
+                #rospy.loginfo('cte: %s', cte)
+                #self.tot_cte += abs(cte)
+                #self.cte_counter += 1
+                #rospy.loginfo('avg_cte: %s', self.tot_cte / self.cte_counter)
+		cte=0.0
                 throttle_val, brake_val, steering_val = self.controller.control(current_time, self.time_last_cmd,
                                                                                 float(1.0 / UPDATE_RATE),
                                                                                 self.twist_cmd, \
