@@ -30,7 +30,7 @@ TIMEOUT_VALUE = 0.1
 ONE_MPH = 0.44704
 
 STOP_DIST = 2.0  # Stop at the light at this distance, if less than this then go through
-SLOW_DIST = 40.0  # Start slowing for the light at this distance
+SLOW_DIST = 65.0  # Start slowing for the light at this distance
 STOP_TOL = 2.0  # Tolarance around STOP_DIST to allow full stop
 
 
